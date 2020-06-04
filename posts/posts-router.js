@@ -28,7 +28,7 @@ router.get('/:id', (req, res) => {
         .then(post => {
             if (post) {
                 res.status(200).json(post);
-            } else {
+            } else if (post.id.length == 0) {
                 res.status(404).json({ message: "The post with the specified ID does not exist." })
             }
         })
@@ -57,7 +57,6 @@ router.get('/:id/comments', (req, res) => {
 router.post('/', (req, res) => {
         const newPost = req.body
         if(!newPost.title || !newPost.contents){
-            console.log(newPost)
             res.status(400).json({ errorMessage: "Please provide title and contents for the post." })
         } else {
             try {
@@ -85,7 +84,7 @@ router.post('/:id/comments', (req, res) => {
                     res.status(404).json({ message: "The post with the specified ID does not exist." })
                 } else {
                     Db.insertComment(newComment)
-                        .then(comment => res.status(201).json(comment))
+                        .then(comment =>  res.status(201).json(comment))
                         .catch(err => {
                             console.log(err)
                             res.status(500).json({ error: "There was an error while saving the comment to the database" })
@@ -96,33 +95,47 @@ router.post('/:id/comments', (req, res) => {
     }
 })
 
+
 // ===================== 4c. PUT ================================
 // 1. I want to find the post by id that i want to edit
 // 2. then if the postId doesn't match the .then post.id, return 404
 // 3. then if the postId matches but it doesn't have the title or contents then return 400 error
 // 4. else try {res 200 } / catch {500 err}
 router.put('/:id', (req, res) => {
-    const postId = Number(req.params.id)
+    const postId = req.params.id
     const editPost = req.body
-    Db.findById(postId) 
-        .then(post => {
-            if (post.id !== postId) {
-                res.status(404).json({ message: "The post with the specified ID does not exist." })
-            } else if(!editPost.title || !editPost.contents){
-                res.status(400).json({ errorMessage: "Please provide title and contents for the post." });
-            } else {
-                try {
-                    Db.update(postId, editPost)
-                    res.status(200).json(editPost)
+
+    if (!editPost.title || !editPost.contents) {
+        res.status(400).json({ errorMessage: "Please provide title and contents for the post." })
+    } else {
+        Db.update(postId, editPost)
+            .then(post => {
+                if (post) {
+                    res.status(200).json({ message: 'It works', post})
+                } else {
+                    res.status(404).json({ message: "The post with the specified ID does not exist." })
                 }
-                catch (err) {
-                    console.log(err)
-                }
-            }
-        })
-        .catch(err => console.log(err),
-            res.status(500).json()
-        )
+            })
+            .catch(err => {
+                console.log(err)
+                res.status(500).json({ error: "The post information could not be modified." })
+            })
+    }
+
+    // Db.findById(postId) 
+    //     .then(post => {
+    //         if (post.id !== postId) {
+    //             res.status(404).json({ message: "The post with the specified ID does not exist." })
+    //         } else if(!editPost.title || !editPost.contents){
+    //             res.status(400).json({ errorMessage: "Please provide title and contents for the post." });
+    //         } else {
+    //             Db.update(postId, editPost)
+    //             res.status(200).json(editPost) 
+    //         }
+    //     })
+    //     .catch(err => console.log(err),
+    //         res.status(500).json({ error: "The post information could not be modified." })
+    //     )
 })
 
 // ======================= 4d. DELETE ==============================
@@ -130,12 +143,12 @@ router.put('/:id', (req, res) => {
 router.delete('/:id', (req, res) => {
     const postId = req.params.id
     
-    Db.remove(postId)
+    Db.remove(req.params.id)
     .then(post => {
-        if (post.id !== postId) {
-            res.status(404).json({ message: "The post with the specified ID does not exist." })
+        if (post) {
+            res.status(200).json({ message: "it works" })
         } else {
-                res.status(200).json({ message: "it works" })
+            res.status(404).json({ message: "The post with the specified ID does not exist." })
             }
         })
         .catch(err => {
